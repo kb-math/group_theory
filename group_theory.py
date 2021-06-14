@@ -60,6 +60,17 @@ def calculate_setwise_stabilizer(group_action, subset):
 
     return stabilizer
 
+def generate_permutation_group(generator_set):
+    group_elements = generate_finite_semigroup(generators, multiply_permutations)
+
+    return Group(group_elements, multiply_permutations)
+
+def generate_permutation_group_action(generator_set):
+    acting_set = set(range(len(list(generator_set)[0])))
+
+    return GroupAction(generate_permutation_group(generator_set), acting_set, lambda g,x: g[x])
+
+
 
 
 if __name__ == '__main__':
@@ -68,12 +79,9 @@ if __name__ == '__main__':
     generators.add((1,2,3,4,5,0))
     generators.add((1,0,5,4,3,2))
     
-    dihedral_group_elements = generate_finite_semigroup(generators, multiply_permutations)
-    dihedral_group = Group(dihedral_group_elements, multiply_permutations)
+    action_on_pentagon = generate_permutation_group_action(generators)
 
-    action_on_pentagon = GroupAction(dihedral_group, set([0,1,2,3,4]), lambda g,x: g[x])
-
-    print (len(dihedral_group_elements))
+    print (len(action_on_pentagon.group.group_elements))
 
     print (calculate_setwise_stabilizer(action_on_pentagon, set([0,2,3])))
 
