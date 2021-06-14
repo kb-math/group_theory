@@ -61,7 +61,7 @@ def calculate_setwise_stabilizer(group_action, subset):
     return stabilizer
 
 def generate_permutation_group(generator_set):
-    group_elements = generate_finite_semigroup(generators, multiply_permutations)
+    group_elements = generate_finite_semigroup(generator_set, multiply_permutations)
 
     return Group(group_elements, multiply_permutations)
 
@@ -70,7 +70,19 @@ def generate_permutation_group_action(generator_set):
 
     return GroupAction(generate_permutation_group(generator_set), acting_set, lambda g,x: g[x])
 
+#generate the symmetric group using the transpositions that swap adjacent elements
+def generate_symmetric_group(n):
+    generators = set()
+    for i in range(n-1):
+        swap_i = list(range(n))
+        swap_i[i] = i+1
+        swap_i[i+1] = i
 
+        swap_i = tuple(swap_i)
+
+        generators.add(swap_i)
+
+    return generate_permutation_group(generators)
 
 
 if __name__ == '__main__':
@@ -84,4 +96,3 @@ if __name__ == '__main__':
     print (len(action_on_pentagon.group.group_elements))
 
     print (calculate_setwise_stabilizer(action_on_pentagon, set([0,2,3])))
-
