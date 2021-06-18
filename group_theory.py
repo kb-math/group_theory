@@ -156,10 +156,25 @@ def perm_group_is_transitive(group_elements):
 
     return False
 
+def construct_k_distinct_tuples(input_list, k):
+    if k == 1:
+        return [tuple([x]) for x in input_list]
+
+    k_minus_one_tuples = construct_k_distinct_tuples(input_list, k -1)
+
+    result = []
+    for tuple_ in k_minus_one_tuples:
+        for x in input_list:
+            if x not in tuple_:
+                result.append(tuple(list(tuple_) + [x]))
+
+    return result
+
+
 class ConjectureTester(object):
     """docstring for ConjectureTester"""
     def __init__(self):
-        self.test_subset = set([0,1])
+        self.test_subset = set([0,1,2])
         self.candidate_actions = set()
 
     def preserves_subset(self, g):
@@ -185,11 +200,25 @@ class ConjectureTester(object):
                 are_isomorphic = self.check_if_action_isomorphic(result)
                 if not are_isomorphic:
                     new_actions.add(generator_tuple)
+                    #now check if their return times are the same
+                    if self.check_return_times(result):
+                        print("these two generators are counterexample:", generator_tuple, prev_generator_tuple)
 
         if group_is_new:
             new_actions.add(generator_tuple)
 
         self.candidate_actions.update(new_actions)
+
+    def check_return_times(self, result):
+        group_iso_dict = result[0]
+
+        for group_element in group_iso_dict:
+            if ((group_element[0] in self.test_subset) != (group_iso_dict[group_element][0] in self.test_subset)):
+                return False
+
+        print("return times agree!!!!!")
+        return True
+
 
     def check_if_action_isomorphic(self, result):
         group_iso_dict = result[0]
@@ -205,21 +234,22 @@ class ConjectureTester(object):
 
 
 
-    def test_conjecture(self, n):
+    def test_conjecture(self, n, r):
         symmetric_group = generate_symmetric_group(n)
 
-        for perm1 in symmetric_group.group_elements:
-            for perm2 in symmetric_group.group_elements:
-                result = self.test_subgroup_stabilizer([perm1, perm2])
-                if result == False:
-                    continue
+        generator_tuple_list = construct_k_distinct_tuples(symmetric_group.group_elements, r)
 
-                group_elements = result
+        for generator_tuple in generator_tuple_list:
+            result = self.test_subgroup_stabilizer(list(generator_tuple))
+            if result == False:
+                continue
 
-                self.check_if_isomorphic_to_existing_subgroup((perm1, perm2))
+            if not perm_group_is_transitive(result):
+                continue
 
-        for action in self.candidate_actions:
-            print (action)
+            group_elements = result
+
+            self.check_if_isomorphic_to_existing_subgroup(generator_tuple)
 
 
 def test_transitivity_tester():
@@ -257,5 +287,9 @@ if __name__ == '__main__':
     print("testing transitivity...")
 
     test_transitivity_tester()
-
-    ConjectureTester().test_conjecture(3)
+    
+    n = 3
+    while True:
+        print ("testing n = ", n)
+        ConjectureTester().test_conjecture(n, 2)
+        n += 1
