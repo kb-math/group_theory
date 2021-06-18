@@ -1,3 +1,5 @@
+import time
+
 class GroupAction(object):
     """docstring for GroupAction"""
     def __init__(self, group, space, action = lambda g,x : x):
@@ -234,7 +236,8 @@ class ConjectureTester(object):
 
 
 
-    def test_conjecture(self, n, r):
+    def test_conjecture(self, n, r, test_subset_size = 2):
+        self.test_subset = set(range(test_subset_size))
         symmetric_group = generate_symmetric_group(n)
 
         generator_tuple_list = construct_k_distinct_tuples(symmetric_group.group_elements, r)
@@ -291,5 +294,7 @@ if __name__ == '__main__':
     n = 3
     while True:
         print ("testing n = ", n)
-        ConjectureTester().test_conjecture(n, 2)
+        for i in range(3,n):
+            print ("testing subset size = ", i)
+            ConjectureTester().test_conjecture(n, 2, test_subset_size = i)
         n += 1
