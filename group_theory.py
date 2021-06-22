@@ -172,129 +172,83 @@ def construct_k_distinct_tuples(input_list, k):
 
     return result
 
+# returns some element in a non-empty set
+def get_an_element(given_set):
+    for x in given_set:
+        return x
 
-class ConjectureTester(object):
-    """docstring for ConjectureTester"""
-    def __init__(self):
-        self.test_subset = set([0,1,2])
-        self.candidate_actions = set()
+def get_cycle_decomposition(perm):
+    unvisited_points = set(range(len(perm)))
+    cycles = []
 
-    def preserves_subset(self, g):
-        return preserves_subset(lambda x: g[x], self.test_subset)
+    while unvisited_points:
+        current_point = get_an_element(unvisited_points)
 
-    def test_subgroup_stabilizer(self, generator_list):
-        test_setwise_stabilizer = lambda g: ((not is_identity_perm(g)) and self.preserves_subset(g)) 
-        group_elements = generate_finite_semigroup(set(generator_list), multiply_permutations, test_setwise_stabilizer)
+        cycle_set = set()
+        cycle_list = []
+        while current_point not in cycle_set:
+            cycle_set.add(current_point)
+            cycle_list.append(current_point)
+            unvisited_points.remove(current_point)
+            current_point = perm[current_point]
 
-        if not group_elements:
-            return False
+        cycles.append(cycle_list)
 
-        return group_elements
+    return cycles
 
-    def check_if_isomorphic_to_existing_subgroup(self, generator_tuple):
-        group_is_new = True
-        new_actions = set()
-        for prev_generator_tuple in self.candidate_actions:
-            result = test_isomorphism(list(generator_tuple), list(prev_generator_tuple), multiply_permutations, multiply_permutations)
-            if result is not False:
-                #we have found an isomorphic copy of a previous group, check if its action is isomorphic
-                group_is_new = False
-                are_isomorphic = self.check_if_action_isomorphic(result)
-                if not are_isomorphic:
-                    new_actions.add(generator_tuple)
-                    #now check if their return times are the same
-                    if self.check_return_times(result):
-                        print("these two generators are counterexample:", generator_tuple, prev_generator_tuple)
+def get_cycle_lengths(perm):
+    cycle_decomp = get_cycle_decomposition(perm)
 
-        if group_is_new:
-            new_actions.add(generator_tuple)
+    cycle_length_counter = dict()
 
-        self.candidate_actions.update(new_actions)
+    for cycle_list in cycle_decomp:
+        if len(cycle_list) not in cycle_length_counter:
+            cycle_length_counter[len(cycle_list)] = 0
 
-    def check_return_times(self, result):
-        group_iso_dict = result[0]
+        cycle_length_counter[len(cycle_list)] += 1
 
-        for group_element in group_iso_dict:
-            if ((group_element[0] in self.test_subset) != (group_iso_dict[group_element][0] in self.test_subset)):
-                return False
+    return cycle_length_counter
 
-        print("return times agree!!!!!")
-        return True
+def perms_are_conjugate(perm1, perm2):
+    return (get_cycle_lengths(perm1) == get_cycle_lengths(perm2))
 
+def perm_inverse(perm):
+    inverse_dict = dict()
 
-    def check_if_action_isomorphic(self, result):
-        group_iso_dict = result[0]
+    for i in range(len(perm)):
+        inverse_dict[perm[i]] = i
 
-        for group_element in group_iso_dict:
-            #the two actions are isomorphic 
-            # checking the stabilizer of 0 is enough
-            if (group_element[0] == 0) != (group_iso_dict[group_element][0] == 0):
-                return False
+    return tuple([inverse_dict[i] for i in range(len(perm))])
 
-        return True
+def sets_are_conjugates(set1, set2, conjugator_set, operation):
+    for conjugator in conjugator_set:
+        invariant = True
+        conjugator_inverse = perm_inverse(conjugator)
+        for g in set1:
+            if operation(conjugator, operation(g, conjugator_inverse)) not in set2:
+                invariant = False
+                break
+        if invariant:
+            return True
 
+    return False
 
+def get_perm_conjugators(perm1, perm2, conjugator_candidates):
+    conjugators = set()
+    if perms_are_conjugate(perm1, perm2):
+        for conjugator_candidate in conjugator_candidates:
+            if perm2 == multiply_permutations(conjugator_candidate, multiply_permutations(perm1, perm_inverse(conjugator_candidate))):
+                conjugators.add(conjugator_candidate)
 
+    return conjugators
 
-    def test_conjecture(self, n, r, test_subset_size = 2):
-        self.test_subset = set(range(test_subset_size))
-        symmetric_group = generate_symmetric_group(n)
+def count_fixed_points(perm):
+    total = 0
+    for i in range(len(perm)):
+        total += (i == perm[i])
+    return total
 
-        generator_tuple_list = construct_k_distinct_tuples(symmetric_group.group_elements, r)
-
-        for generator_tuple in generator_tuple_list:
-            result = self.test_subgroup_stabilizer(list(generator_tuple))
-            if result == False:
-                continue
-
-            if not perm_group_is_transitive(result):
-                continue
-
-            group_elements = result
-
-            self.check_if_isomorphic_to_existing_subgroup(generator_tuple)
-
-
-def test_transitivity_tester():
-    generators = set()
-
-    generators.add((1,0,2,3,4))
-    generators.add((2,0,1,4,3))
-
-    assert( False == perm_group_is_transitive(generate_finite_semigroup(generators, multiply_permutations)) )
-
-    generators = set()
-
-    generators.add((1,2,3,0))
-
-    assert( True == perm_group_is_transitive(generate_finite_semigroup(generators, multiply_permutations)) )
-
-
-if __name__ == '__main__':
-
-    generators = set()
-    generators.add((1,2,3,4,5,0))
-    generators.add((1,0,5,4,3,2))
+def permutations_conjugate(perm_1, perm_2):
+    cycle_decomp_1 = get_cycle_decomposition(perm1)
+    cycle_decomp_2 = get_cycle_decomposition(perm2)
     
-    action_on_pentagon = generate_permutation_group_action(generators)
-
-    print (len(action_on_pentagon.group.group_elements))
-
-    print (calculate_setwise_stabilizer(action_on_pentagon, set([0,2,3])))
-
-    result = test_isomorphism([(1,2,3,0)], [(3,0,1,2)], multiply_permutations, multiply_permutations)
-
-    for x in result[0]:
-        print (x, result[0][x])
-
-    print("testing transitivity...")
-
-    test_transitivity_tester()
-    
-    n = 3
-    while True:
-        print ("testing n = ", n)
-        for i in range(3,n):
-            print ("testing subset size = ", i)
-            ConjectureTester().test_conjecture(n, 2, test_subset_size = i)
-        n += 1
