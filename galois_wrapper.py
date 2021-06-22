@@ -1,41 +1,110 @@
 import galois
 import numpy as np
 
+from group_theory import *
+
 class PrimeOrderField(object):
-	"""docstring for PrimeOrderFIeld"""
-	def __init__(self, p):
-		self.p = p
-		self._GF = galois.GF(p)
+    """docstring for PrimeOrderFIeld"""
+    def __init__(self, p):
+        self.p = p
+        self._GF = galois.GF(p)
 
-	def matmul(self, matrix_1, matrix_2):
-		product = np.matmul(self._GF(list(list(row) for row in matrix_1)), self._GF(list(list(row) for row in matrix_2)))
+    def matmul(self, matrix_1, matrix_2):
+        product = np.matmul(self._GF(list(list(row) for row in matrix_1)), self._GF(list(list(row) for row in matrix_2)))
 
-		return tuple([tuple([int(entry) for entry in row]) for row in product])
+        return tuple([tuple([int(entry) for entry in row]) for row in product])
 
-	def apply_lin_op(self, matrix, vector):
-		return tuple(entry[0] for entry in self.matmul(matrix, [[entry] for entry in vector]))
+    def matinv(self, matrix):
+        inverse = np.linalg.inv(self._GF(list(list(row) for row in matrix)))
 
-	def generate_space(self, dim):
-		if dim == 1:
-			return set(tuple([x]) for x in range(self.p))
+        return tuple([tuple([int(entry) for entry in row]) for row in inverse])
 
-		dim_less_one = self.generate_space(dim - 1)
-		space = set()
+    def transpose(self, matrix):
+        trans = np.transpose(self._GF(list(list(row) for row in matrix)))
 
-		for x in range(self.p):
-			for vec in dim_less_one:
-				space.add(tuple(list(vec) + [x]))
+        return tuple([tuple([int(entry) for entry in row]) for row in trans])
 
-		return space
+    def apply_lin_op(self, matrix, vector):
+        return tuple(entry[0] for entry in self.matmul(matrix, [[entry] for entry in vector]))
 
-	def generate_matrices(self, dim, invertible_only = False):
-		pass
+    def generate_space(self, dim):
+        if dim == 1:
+            return set(tuple([x]) for x in range(self.p))
+
+        dim_less_one = self.generate_space(dim - 1)
+        space = set()
+
+        for x in range(self.p):
+            for vec in dim_less_one:
+                space.add(tuple(list(vec) + [x]))
+
+        return space
+
+    def generate_special_linear(self, dim):
+        #TODO: more efficient, brute force it for now
+        vectors = self.generate_space(dim)
+        matrices = construct_k_distinct_tuples(vectors, dim)
+
+        special_linear_matrices = set()
+
+        for matrix in matrices:
+            if (np.linalg.det(self._GF(matrix)) == 1):
+                special_linear_matrices.add(matrix)
+
+        return special_linear_matrices
+
+class FanoPermData(object):
+    """docstring for FanoPermData"""
+    def __init__(self, g_perm, g_dual_perm):
+        self.g_perm = g_perm
+        self.g_dual_perm = g_dual_perm
+        
+
+def create_fano_plane_permutations():
+    F2 = PrimeOrderField(2)
+
+    vectors = F2.generate_space(3)
+    vectors.remove((0,0,0))
+
+    sl_3 = F2.generate_special_linear(3)
+
+    id_to_vector = dict()
+    vector_to_id = dict()
+
+    vector_id = 0
+    for vector in vectors:
+        id_to_vector[vector_id] = vector
+        vector_to_id[vector] = vector_id
+
+        vector_id += 1
+
+    g_perm_list = []
+    g_dual_perm_list = []
+    for matrix in sl_3:
+        g_perm = []
+        g_tran_inv_perm = []
+        for vec_id in id_to_vector:
+            g_perm.append(vector_to_id[F2.apply_lin_op(matrix, id_to_vector[vec_id])])
+            g_tran_inv_perm.append(vector_to_id[F2.apply_lin_op(F2.transpose(F2.matinv(matrix)), id_to_vector[vec_id])])
+
+        g_perm_list.append(tuple(g_perm))
+        g_dual_perm_list.append(tuple(g_tran_inv_perm))
+
+    return FanoPermData(g_perm_list, g_dual_perm_list)
 
 if __name__ == '__main__':
-	F2 = PrimeOrderField(2)
+    F2 = PrimeOrderField(2)
 
-	print( F2.apply_lin_op(((1,1), (0,1)), (1,1) ) )
+    #print( F2.apply_lin_op(((1,1), (0,1)), (1,1) ) )
 
-	print ("3D space", F2.generate_space(3))
+    #print ("3D space", F2.generate_space(3))
+
+    #print( len(F2.generate_special_linear(3)))
+
+    #print ("inverse of [0,1; 1 0] is", F2.matinv( ((0,1),(1,0))) )
+
+    fano_perm_data = create_fano_plane_permutations()
+
+    print (fano_perm_data.g_dual_perm[0])
 
 
