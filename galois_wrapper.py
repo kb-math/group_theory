@@ -105,17 +105,33 @@ def create_fano_21_Frob():
     tau = tuple(int(F8(x) * F8(3)) - 1 for x in range(1,8))
     sigma = tuple(int(F8(x) * F8(x)) - 1 for x in range(1,8))
 
-    group = generate_finite_semigroup([tau, sigma], multiply_permutations)
+    tau = lambda x: int(F8(x) * F8(3))
+    sigma = lambda x: int(F8(x) * F8(x))
+
+    F2 = PrimeOrderField(2)
+
+    tau = int_map_to_matrix(tau)
+    sigma = int_map_to_matrix(sigma)
+
+    group = generate_finite_semigroup([tau, sigma], lambda A,B: F2.matmul(A,B))
 
     return group
 
 
 def F8vector_to_int(vector):
-    pass
+    return int(''.join([str(bit) for bit in vector]), 2)
 
 def int_to_F8vector(int_rep):
-    pass
+    return(tuple(int(bit) for bit in '{0:03b}'.format(int_rep)))
 
+#convert a map in F8 to the matrix representation in (F_2)^3
+def int_map_to_matrix(int_map):
+    basis = [(1,0,0), (0,1,0), (0,0,1)]
+
+    matrix_transpose = ([int_to_F8vector(int_map(F8vector_to_int(basis_vector))) for basis_vector in basis])
+    F2 = PrimeOrderField(2)
+
+    return F2.transpose(matrix_transpose)
 
 if __name__ == '__main__':
     F2 = PrimeOrderField(2)
