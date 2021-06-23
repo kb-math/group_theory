@@ -4,7 +4,7 @@ import numpy as np
 from group_theory import *
 
 class PrimeOrderField(object):
-    """docstring for PrimeOrderFIeld"""
+    """wrapper for the galois library, enables linear algebra in field with prime power number of elements"""
     def __init__(self, p):
         self.p = p
         self._GF = galois.GF(p)
@@ -58,16 +58,8 @@ class FanoPermData(object):
     def __init__(self, g_perm, g_dual_perm):
         self.g_perm = g_perm
         self.g_dual_perm = g_dual_perm
-        
 
-def create_fano_plane_permutations():
-    F2 = PrimeOrderField(2)
-
-    vectors = F2.generate_space(3)
-    vectors.remove((0,0,0))
-
-    sl_3 = F2.generate_special_linear(3)
-
+def create_vector_id_maps(vectors):
     id_to_vector = dict()
     vector_to_id = dict()
 
@@ -78,19 +70,52 @@ def create_fano_plane_permutations():
 
         vector_id += 1
 
+    return (id_to_vector, vector_to_id)
+
+def convert_linear_group_to_permutation(base_field, vectors, group):
+    id_to_vector, vector_to_id = create_vector_id_maps(vectors)      
+
     g_perm_list = []
     g_dual_perm_list = []
-    for matrix in sl_3:
+    for matrix in group:
         g_perm = []
         g_tran_inv_perm = []
         for vec_id in id_to_vector:
-            g_perm.append(vector_to_id[F2.apply_lin_op(matrix, id_to_vector[vec_id])])
-            g_tran_inv_perm.append(vector_to_id[F2.apply_lin_op(F2.transpose(F2.matinv(matrix)), id_to_vector[vec_id])])
+            g_perm.append(vector_to_id[base_field.apply_lin_op(matrix, id_to_vector[vec_id])])
+            g_tran_inv_perm.append(vector_to_id[base_field.apply_lin_op(base_field.transpose(base_field.matinv(matrix)), id_to_vector[vec_id])])
 
         g_perm_list.append(tuple(g_perm))
         g_dual_perm_list.append(tuple(g_tran_inv_perm))
 
     return FanoPermData(g_perm_list, g_dual_perm_list)
+
+def create_fano_plane_permutations():
+    F2 = PrimeOrderField(2)
+
+    vectors = F2.generate_space(3)
+    vectors.remove((0,0,0))
+
+    sl_3 = F2.generate_special_linear(3)
+
+    return convert_linear_group_to_permutation(F2, vectors, sl_3)
+
+def create_fano_21_Frob():
+    F8 = galois.GF(8)
+
+    tau = tuple(int(F8(x) * F8(3)) - 1 for x in range(1,8))
+    sigma = tuple(int(F8(x) * F8(x)) - 1 for x in range(1,8))
+
+    group = generate_finite_semigroup([tau, sigma], multiply_permutations)
+
+    return group
+
+
+def F8vector_to_int(vector):
+    pass
+
+def int_to_F8vector(int_rep):
+    pass
+
 
 if __name__ == '__main__':
     F2 = PrimeOrderField(2)
@@ -105,6 +130,8 @@ if __name__ == '__main__':
 
     fano_perm_data = create_fano_plane_permutations()
 
-    print (fano_perm_data.g_dual_perm[0])
+    print (len(fano_perm_data.g_dual_perm))
+
+    print(len(create_fano_21_Frob()))
 
 
