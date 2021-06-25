@@ -115,7 +115,10 @@ def create_fano_21_Frob():
 
     group = generate_finite_semigroup([tau, sigma], lambda A,B: F2.matmul(A,B))
 
-    return group
+    vectors = F2.generate_space(3)
+    vectors.remove((0,0,0))
+
+    return convert_linear_group_to_permutation(F2, vectors, group)
 
 
 def F8vector_to_int(vector):
@@ -148,6 +151,6 @@ if __name__ == '__main__':
 
     print (len(fano_perm_data.g_dual_perm))
 
-    print(len(create_fano_21_Frob()))
+    print(len(create_fano_21_Frob().g_dual_perm))
 
 
